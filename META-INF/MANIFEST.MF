@@ -1,0 +1,11 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Progressmonitor Plug-in
+Bundle-SymbolicName: de.siteof.progressmonitor
+Bundle-Version: 1.0.0
+Bundle-Vendor: DE
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Require-Bundle: org.apache.commons.logging;bundle-version="1.0.0",
+ de.siteof.resource;bundle-version="1.0.0",
+ de.siteof.task;bundle-version="1.0.0",
+ de.siteof.shared;bundle-version="1.0.0"
