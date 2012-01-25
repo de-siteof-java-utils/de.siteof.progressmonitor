@@ -12,6 +12,7 @@ import de.siteof.progressmonitor.IProgressMonitor;
 import de.siteof.progressmonitor.IProgressMonitorFactory;
 import de.siteof.resource.IResource;
 import de.siteof.resource.ResourceProxy;
+import de.siteof.resource.ResourceRequestParameters;
 import de.siteof.resource.event.IResourceListener;
 import de.siteof.resource.event.ResourceLoaderEvent;
 import de.siteof.resource.util.IOUtil;
@@ -20,11 +21,11 @@ public class ProgressMonitorResource extends ResourceProxy {
 
 	private static class ProgressMonitorInputStream extends FilterInputStream {
 
-		private IProgressMonitor progressMonitor;
-		private long resolution;
+		private final IProgressMonitor progressMonitor;
+		private final long resolution;
 		private long readCounter;
 		private int lastWorked;
-		private long size;
+		private final long size;
 
 		protected ProgressMonitorInputStream(InputStream in, IProgressMonitor progressMonitor, long size, long resolution) {
 			super(in);
@@ -43,6 +44,7 @@ public class ProgressMonitorResource extends ResourceProxy {
 			lastWorked	= worked;
 		}
 
+		@Override
 		public int read() throws IOException {
 			doOnBeforeRead(1);
 			int result	= super.read();
@@ -52,6 +54,7 @@ public class ProgressMonitorResource extends ResourceProxy {
 			return result;
 		}
 
+		@Override
 		public int read(byte[] buffer, int offset, int count) throws IOException {
 			final int maxRead	= 128;
 			if (count > maxRead) {
@@ -75,6 +78,7 @@ public class ProgressMonitorResource extends ResourceProxy {
 			}
 		}
 
+		@Override
 		public int read(byte[] buffer) throws IOException {
 			return this.read(buffer, 0, buffer.length);
 		}
@@ -82,6 +86,7 @@ public class ProgressMonitorResource extends ResourceProxy {
 		/* (non-Javadoc)
 		 * @see java.io.FilterInputStream#close()
 		 */
+		@Override
 		public void close() throws IOException {
 			try {
 				super.close();
@@ -106,10 +111,12 @@ public class ProgressMonitorResource extends ResourceProxy {
 			this.resource = resource;
 		}
 
+		@Override
 		public boolean canCancel() {
 			return ((inputStream != null) || (thread != null));
 		}
 
+		@Override
 		public void cancel() {
 			if (resource != null) {
 				resource.abort();
@@ -158,7 +165,7 @@ public class ProgressMonitorResource extends ResourceProxy {
 	}
 
 
-	private IProgressMonitorFactory progressMonitorFactory;
+	private final IProgressMonitorFactory progressMonitorFactory;
 
 	private static final Log log	= LogFactory.getLog(ProgressMonitorResource.class);
 
@@ -168,6 +175,7 @@ public class ProgressMonitorResource extends ResourceProxy {
 		this.progressMonitorFactory		= progressMonitorFactory;
 	}
 
+	@Override
 	public InputStream getResourceAsStream() throws IOException {
 		IProgressMonitor progressMonitor	= null;
 		ProgressCallback callback = null;
@@ -200,6 +208,7 @@ public class ProgressMonitorResource extends ResourceProxy {
 		return in;
 	}
 
+	@Override
 	public byte[] getResourceBytes() throws IOException {
 		InputStream in	= getResourceAsStream();
 		if (in == null) {
@@ -219,7 +228,8 @@ public class ProgressMonitorResource extends ResourceProxy {
 	 */
 	@Override
 	public void getResourceAsStream(
-			IResourceListener<ResourceLoaderEvent<InputStream>> listener)
+			IResourceListener<ResourceLoaderEvent<InputStream>> listener,
+			ResourceRequestParameters parameters)
 			throws IOException {
 		final IResourceListener<ResourceLoaderEvent<InputStream>> finalListener = listener;
 		IProgressMonitor progressMonitor	= null;
@@ -237,6 +247,7 @@ public class ProgressMonitorResource extends ResourceProxy {
 		final ProgressCallback finalCallback = callback;
 
 		this.getResource().getResourceAsStream(new IResourceListener<ResourceLoaderEvent<InputStream>>() {
+			@Override
 			public void onResourceEvent(
 					ResourceLoaderEvent<InputStream> event) {
 				IProgressMonitor progressMonitor	= finalProgressMonitor;
@@ -286,7 +297,7 @@ public class ProgressMonitorResource extends ResourceProxy {
 					finalListener.onResourceEvent(new ResourceLoaderEvent<InputStream>(
 							ProgressMonitorResource.this, statusMessage));
 				}
-			}});
+			}}, parameters);
 	}
 
 	/* (non-Javadoc)
@@ -294,10 +305,12 @@ public class ProgressMonitorResource extends ResourceProxy {
 	 */
 	@Override
 	public void getResourceBytes(
-			IResourceListener<ResourceLoaderEvent<byte[]>> listener)
+			IResourceListener<ResourceLoaderEvent<byte[]>> listener,
+			ResourceRequestParameters parameters)
 			throws IOException {
 		final IResourceListener<ResourceLoaderEvent<byte[]>> finalListener = listener;
 		this.getResourceAsStream(new IResourceListener<ResourceLoaderEvent<InputStream>>() {
+			@Override
 			public void onResourceEvent(ResourceLoaderEvent<InputStream> event) {
 				if (event.isComplete()) {
 					try {
@@ -317,7 +330,7 @@ public class ProgressMonitorResource extends ResourceProxy {
 					finalListener.onResourceEvent(new ResourceLoaderEvent<byte[]>(
 							ProgressMonitorResource.this, statusMessage));
 				}
-			}});
+			}}, parameters);
 		/*
 		IProgressMonitor progressMonitor	= null;
 		ProgressCallback callback = null;
