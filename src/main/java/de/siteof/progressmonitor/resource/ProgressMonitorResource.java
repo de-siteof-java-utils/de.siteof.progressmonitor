@@ -296,6 +296,9 @@ public class ProgressMonitorResource extends ResourceProxy {
 					}
 					finalListener.onResourceEvent(new ResourceLoaderEvent<InputStream>(
 							ProgressMonitorResource.this, statusMessage));
+				} else {
+					finalListener.onResourceEvent(event.cloneFor(
+							ProgressMonitorResource.this, (InputStream) null));
 				}
 			}}, parameters);
 	}
@@ -312,6 +315,7 @@ public class ProgressMonitorResource extends ResourceProxy {
 		this.getResourceAsStream(new IResourceListener<ResourceLoaderEvent<InputStream>>() {
 			@Override
 			public void onResourceEvent(ResourceLoaderEvent<InputStream> event) {
+				// TODO read in chunks
 				if (event.isComplete()) {
 					try {
 						byte[] data = getResourceBytesFromEvent(event);
@@ -329,6 +333,8 @@ public class ProgressMonitorResource extends ResourceProxy {
 					CharSequence statusMessage = event.getStatusMessage();
 					finalListener.onResourceEvent(new ResourceLoaderEvent<byte[]>(
 							ProgressMonitorResource.this, statusMessage));
+				} else {
+					finalListener.onResourceEvent(event.cloneFor(ProgressMonitorResource.this, (byte[]) null));
 				}
 			}}, parameters);
 		/*
