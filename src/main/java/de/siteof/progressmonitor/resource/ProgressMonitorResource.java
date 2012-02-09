@@ -3,6 +3,7 @@ package de.siteof.progressmonitor.resource;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -135,24 +136,10 @@ public class ProgressMonitorResource extends ResourceProxy {
 		}
 
 		/**
-		 * @return the inputStream
-		 */
-		public InputStream getInputStream() {
-			return inputStream;
-		}
-
-		/**
 		 * @param inputStream the inputStream to set
 		 */
 		public void setInputStream(InputStream inputStream) {
 			this.inputStream = inputStream;
-		}
-
-		/**
-		 * @return the thread
-		 */
-		public Thread getThread() {
-			return thread;
 		}
 
 		/**
@@ -315,12 +302,41 @@ public class ProgressMonitorResource extends ResourceProxy {
 		this.getResourceAsStream(new IResourceListener<ResourceLoaderEvent<InputStream>>() {
 			@Override
 			public void onResourceEvent(ResourceLoaderEvent<InputStream> event) {
-				// TODO read in chunks
 				if (event.isComplete()) {
 					try {
-						byte[] data = getResourceBytesFromEvent(event);
-						finalListener.onResourceEvent(new ResourceLoaderEvent<byte[]>(
-								ProgressMonitorResource.this, data, true));
+						InputStream in = event.getResult();
+						if (in != null) {
+							boolean chunked = false;
+							if (chunked) {
+								try {
+									byte[] buffer = new byte[4096];
+									while (true) {
+										int bytesRead = in.read(buffer);
+										if (bytesRead < 0) {
+											break;
+										}
+										if (bytesRead > 0) {
+											// chunk
+											byte[] data = Arrays.copyOf(buffer, bytesRead);
+											finalListener.onResourceEvent(new ResourceLoaderEvent<byte[]>(
+													ProgressMonitorResource.this, data, false));
+										}
+									}
+									// complete event
+									finalListener.onResourceEvent(new ResourceLoaderEvent<byte[]>(
+											ProgressMonitorResource.this, new byte[0], true));
+								} finally {
+									in.close();
+								}
+							} else {
+								byte[] data = getResourceBytesFromEvent(event);
+								finalListener.onResourceEvent(new ResourceLoaderEvent<byte[]>(
+										ProgressMonitorResource.this, data, true));
+							}
+						} else {
+							finalListener.onResourceEvent(new ResourceLoaderEvent<byte[]>(
+									ProgressMonitorResource.this, new byte[0], true));
+						}
 					} catch (IOException e) {
 						finalListener.onResourceEvent(new ResourceLoaderEvent<byte[]>(
 								ProgressMonitorResource.this,
