@@ -1,56 +1,62 @@
 package de.siteof.progressmonitor.resource.test;
 
 import java.io.IOException;
+import java.util.Collection;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized.Parameters;
 
 import de.siteof.progressmonitor.IProgressCallback;
 import de.siteof.progressmonitor.IProgressMonitor;
 import de.siteof.progressmonitor.IProgressMonitorFactory;
 import de.siteof.progressmonitor.resource.ProgressMonitorResourceLoader;
 import de.siteof.resource.IResourceLoader;
+import de.siteof.resource.util.test.ResourceLoaderTestParameter;
 import de.siteof.resource.util.test.ResourceLoaderTester;
+import de.siteof.test.LabelledParameterized;
 
+@RunWith(LabelledParameterized.class)
 public class ProgressMonitorResourceLoaderTest {
 
-	private final ResourceLoaderTester tester =  new ResourceLoaderTester();
+	private static final TestProgressMonitor progressMonitor = new TestProgressMonitor();
 
-	private final IProgressMonitorFactory progressMonitorFactory;
+	private static final IProgressMonitorFactory progressMonitorFactory = new IProgressMonitorFactory() {
 
-	private final TestProgressMonitor progressMonitor = new TestProgressMonitor();
+		@Override
+		public IProgressMonitor createProgressMonitor() {
+			return progressMonitor;
+		}
 
-	public ProgressMonitorResourceLoaderTest() {
-		progressMonitorFactory = new IProgressMonitorFactory() {
+		@Override
+		public IProgressMonitor createProgressMonitor(
+				IProgressCallback callback) {
+			return progressMonitor;
+		}
+	};
 
-			@Override
-			public IProgressMonitor createProgressMonitor() {
-				return progressMonitor;
-			}
 
-			@Override
-			public IProgressMonitor createProgressMonitor(
-					IProgressCallback callback) {
-				return progressMonitor;
-			}
-		};
+	private static ResourceLoaderTester tester = new ResourceLoaderTester() {
+		@Override
+		protected IResourceLoader createResourceLoader(IResourceLoader parent) {
+			return new ProgressMonitorResourceLoader(parent, progressMonitorFactory);
+		}
+	};
+
+	private final ResourceLoaderTestParameter test;
+
+	public ProgressMonitorResourceLoaderTest(ResourceLoaderTestParameter test) {
+		this.test = test;
 	}
 
-	protected void doTest() throws IOException {
-		this.doTest("dummy");
-	}
-
-	protected void doTest(String name) throws IOException {
-		tester.setResourceLoader(this.createResourceLoader(tester.getParent()));
-		tester.test(name);
-	}
-
-	protected IResourceLoader createResourceLoader(IResourceLoader parent) {
-		return new ProgressMonitorResourceLoader(parent, progressMonitorFactory);
-	}
+	@Parameters
+    public static Collection<Object[]> getTests() {
+    	return tester.allTestsArrays();
+    }
 
 	@Test
 	public void test() throws IOException {
-		this.doTest("http://dummy/");
+		tester.test(test, "http://dummy/");
 	}
 
 }
