@@ -306,7 +306,7 @@ public class ProgressMonitorResource extends ResourceProxy {
 					try {
 						InputStream in = event.getResult();
 						if (in != null) {
-							boolean chunked = false;
+							boolean chunked = true;
 							if (chunked) {
 								try {
 									byte[] buffer = new byte[4096];
