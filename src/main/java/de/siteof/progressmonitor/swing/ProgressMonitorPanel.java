@@ -4,6 +4,7 @@ import java.awt.BorderLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,10 +34,12 @@ public class ProgressMonitorPanel extends JPanel implements IProgressMonitorFact
 		private static final long serialVersionUID = 1L;
 
 
+		@Override
 		public int getColumnCount() {
 			return 2;
 		}
 
+		@Override
 		public String getColumnName(int columnIndex) {
 			switch (columnIndex) {
 				case 0:
@@ -47,12 +50,19 @@ public class ProgressMonitorPanel extends JPanel implements IProgressMonitorFact
 			return "unknown " + columnIndex;
 		}
 
+		@Override
 		public int getRowCount() {
 			synchronized (progressList) {
 				return progressList.size();
 			}
 		}
 
+		private String formatValue(long number) {
+			NumberFormat format = NumberFormat.getNumberInstance();
+			return format.format(number);
+		}
+
+		@Override
 		public Object getValueAt(int rowIndex, int columnIndex) {
 			ProgressMonitor progressMonitor	= null;
 			synchronized (progressList) {
@@ -72,10 +82,10 @@ public class ProgressMonitorPanel extends JPanel implements IProgressMonitorFact
 							if (entry.getWorked() == 0) {
 								result	= "";
 							} else {
-								result	= Integer.toString(entry.getWorked());
+								result	= formatValue(entry.getWorked());
 							}
 						} else {
-							result	= entry.getWorked() + "/" + entry.getTotalWork();
+							result	= formatValue(entry.getWorked()) + "/" + formatValue(entry.getTotalWork());
 						}
 						String subTask = entry.getSubTaskName();
 						if ((subTask != null) && (subTask.length() > 0)) {
@@ -83,6 +93,8 @@ public class ProgressMonitorPanel extends JPanel implements IProgressMonitorFact
 						}
 						if (entry.isCanceled()) {
 							result	= result.toString() + " (cancelled)";
+						} else if (entry.isDone()) {
+							result	= result.toString() + " (done)";
 						}
 						break;
 				}
@@ -99,8 +111,8 @@ public class ProgressMonitorPanel extends JPanel implements IProgressMonitorFact
 		private String subTaskName;
 		private int totalWork;
 		private int worked;
-		private boolean canceled	= false;
-		private boolean done		= false;
+		private boolean canceled;
+		private boolean done;
 		/**
 		 * @return the canceled
 		 */
@@ -181,7 +193,7 @@ public class ProgressMonitorPanel extends JPanel implements IProgressMonitorFact
 	private static class ProgressMonitor implements IProgressMonitor {
 
 
-		private int id	= (idCounter++);
+		private final int id	= (idCounter++);
 		private boolean added			= false;
 		private boolean done			= false;
 		private boolean canceled		= false;
@@ -226,6 +238,7 @@ public class ProgressMonitorPanel extends JPanel implements IProgressMonitorFact
 		private void update() {
 			if (done) {
 				SwingUtil.invokeLater(new Runnable() {
+					@Override
 					public void run() {
 						int index;
 						List<ProgressMonitor> progressList		= parent.progressList;
@@ -252,6 +265,7 @@ public class ProgressMonitorPanel extends JPanel implements IProgressMonitorFact
 				}
 				added	= true;
 				SwingUtil.invokeLater(new Runnable() {
+					@Override
 					public void run() {
 						int index;
 						List<ProgressMonitor> progressList		= parent.progressList;
@@ -272,6 +286,7 @@ public class ProgressMonitorPanel extends JPanel implements IProgressMonitorFact
 				log.debug("added1, id=" + id);
 			} else {
 				SwingUtil.invokeLater(new Runnable() {
+					@Override
 					public void run() {
 						int index;
 						List<ProgressMonitor> progressList		= parent.progressList;
@@ -293,6 +308,7 @@ public class ProgressMonitorPanel extends JPanel implements IProgressMonitorFact
 			}
 		}
 
+		@Override
 		public void beginTask(String name, int totalWork) {
 			checkNotDone();
 			this.taskName		= name;
@@ -303,37 +319,44 @@ public class ProgressMonitorPanel extends JPanel implements IProgressMonitorFact
 
 		}
 
+		@Override
 		public void done() {
 			done	= true;
 			update();
 		}
 
+		@Override
 		public void internalWorked(double work) {
 			checkNotDone();
 		}
 
+		@Override
 		public boolean isCanceled() {
 			return canceled;
 		}
 
+		@Override
 		public void setCanceled(boolean value) {
 			checkNotDone();
 			canceled	= value;
 			update();
 		}
 
+		@Override
 		public void setTaskName(String name) {
 			checkNotDone();
 			taskName	= name;
 			update();
 		}
 
+		@Override
 		public void subTask(String name) {
 			checkNotDone();
 			subTaskName	= name;
 			update();
 		}
 
+		@Override
 		public void worked(int work) {
 			checkNotDone();
 			worked	+= work;
@@ -345,6 +368,7 @@ public class ProgressMonitorPanel extends JPanel implements IProgressMonitorFact
 		/* (non-Javadoc)
 		 * @see java.lang.Object#toString()
 		 */
+		@Override
 		public String toString() {
 			return "ProgressMonitor(" + this.id + ")";
 		}
@@ -354,10 +378,13 @@ public class ProgressMonitorPanel extends JPanel implements IProgressMonitorFact
 
 	private class CancelAction extends AbstractAction {
 
+		private static final long serialVersionUID = 1L;
+
 		public CancelAction() {
 			super("Cancel");
 		}
 
+		@Override
 		public void actionPerformed(ActionEvent event) {
 			if ((selectedProgressMonitor != null) &&
 					(selectedProgressMonitor.callback != null)) {
@@ -368,6 +395,7 @@ public class ProgressMonitorPanel extends JPanel implements IProgressMonitorFact
 		/* (non-Javadoc)
 		 * @see javax.swing.AbstractAction#isEnabled()
 		 */
+		@Override
 		public boolean isEnabled() {
 			return ((selectedProgressMonitor != null) &&
 					(selectedProgressMonitor.callback != null) &&
@@ -383,9 +411,9 @@ public class ProgressMonitorPanel extends JPanel implements IProgressMonitorFact
 	 */
 	private static final long serialVersionUID = 1L;
 
-	private JTable table;
+	private final JTable table;
 	private ProgressMonitorTableModel tableModel;
-	private List<ProgressMonitor> progressList	= new ArrayList<ProgressMonitor>();
+	private final List<ProgressMonitor> progressList	= new ArrayList<ProgressMonitor>();
 	private ProgressMonitor selectedProgressMonitor;
 //	private JPopupMenu menu = new JPopupMenu();
 //	private CancelAction cancelAction;
@@ -398,6 +426,7 @@ public class ProgressMonitorPanel extends JPanel implements IProgressMonitorFact
 
 		table.addMouseListener(new MouseListener() {
 
+			@Override
 			public void mouseClicked(MouseEvent event) {
 				if ((event.getClickCount() == 1) && (event.getButton() == MouseEvent.BUTTON3)) {
 //				if (event.isPopupTrigger()) {
@@ -415,15 +444,19 @@ public class ProgressMonitorPanel extends JPanel implements IProgressMonitorFact
 				}
 			}
 
+			@Override
 			public void mouseEntered(MouseEvent event) {
 			}
 
+			@Override
 			public void mouseExited(MouseEvent event) {
 			}
 
+			@Override
 			public void mousePressed(MouseEvent event) {
 			}
 
+			@Override
 			public void mouseReleased(MouseEvent event) {
 			}});
 
@@ -433,10 +466,12 @@ public class ProgressMonitorPanel extends JPanel implements IProgressMonitorFact
 //		dummyProgressMonitor.worked(4);
 	}
 
+	@Override
 	public IProgressMonitor createProgressMonitor() {
 		return new ProgressMonitor(this, null);
 	}
 
+	@Override
 	public IProgressMonitor createProgressMonitor(IProgressCallback callback) {
 		return new ProgressMonitor(this, callback);
 	}
