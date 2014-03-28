@@ -1,6 +1,7 @@
 package de.siteof.progressmonitor.swing;
 
 import java.awt.BorderLayout;
+import java.awt.EventQueue;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
@@ -22,7 +23,6 @@ import org.apache.commons.logging.LogFactory;
 import de.siteof.progressmonitor.IProgressCallback;
 import de.siteof.progressmonitor.IProgressMonitor;
 import de.siteof.progressmonitor.IProgressMonitorFactory;
-import de.siteof.util.swing.SwingUtil;
 
 public class ProgressMonitorPanel extends JPanel implements IProgressMonitorFactory {
 
@@ -213,6 +213,19 @@ public class ProgressMonitorPanel extends JPanel implements IProgressMonitorFact
 			this.callback = callback;
 		}
 
+		private void invokeLaterOrNow(Runnable runnable) {
+			if (!EventQueue.isDispatchThread()) {
+				if (log.isDebugEnabled()) {
+					log.debug("queueing runnable");
+				}
+				EventQueue.invokeLater(runnable);
+			} else {
+				if (log.isDebugEnabled()) {
+					log.debug("executing runnable");
+				}
+				runnable.run();
+			}
+		}
 
 		private void checkNotDone() {
 			if (done) {
@@ -237,7 +250,7 @@ public class ProgressMonitorPanel extends JPanel implements IProgressMonitorFact
 
 		private void update() {
 			if (done) {
-				SwingUtil.invokeLater(new Runnable() {
+				invokeLaterOrNow(new Runnable() {
 					@Override
 					public void run() {
 						int index;
@@ -264,7 +277,7 @@ public class ProgressMonitorPanel extends JPanel implements IProgressMonitorFact
 					progressList.add(0, this);
 				}
 				added	= true;
-				SwingUtil.invokeLater(new Runnable() {
+				invokeLaterOrNow(new Runnable() {
 					@Override
 					public void run() {
 						int index;
@@ -285,7 +298,7 @@ public class ProgressMonitorPanel extends JPanel implements IProgressMonitorFact
 					}});
 				log.debug("added1, id=" + id);
 			} else {
-				SwingUtil.invokeLater(new Runnable() {
+				invokeLaterOrNow(new Runnable() {
 					@Override
 					public void run() {
 						int index;
